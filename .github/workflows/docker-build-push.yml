@@ -25,7 +25,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          # Change these if your Dockerfile is not at the repo root
+          
           context: .
           file: ./Dockerfile
           push: true

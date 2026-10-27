@@ -2,16 +2,23 @@ import os
 import re
 import csv
 from io import StringIO
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify, send_from_directory, send_file
 from flask_cors import CORS
 from pydub import AudioSegment
 import tempfile
 
-# Version: 1.0.1
-# Built with GitHub Actions
+# Version: 2.0
+# Built and deployed with GitHub Actions + AWS SSM
 
 app = Flask(__name__)
 CORS(app)
+
+# Deployment info (proves the automated pipeline ran)
+APP_VERSION = "2.0"
+DEPLOYMENT_METHOD = "GitHub Actions + AWS SSM"
+GIT_COMMIT = os.environ.get("GIT_COMMIT", "unknown")[:7]
+CONTAINER_STARTED = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 # Global variables for playlist management
 current_directory = None
@@ -146,8 +153,30 @@ def serve_audio_segment():
 def index():
     """
     Renders the main HTML page for the client-side audio player.
+    Passes deployment info so the page shows Version 2.0 indicators.
     """
-    return render_template('index.html') 
+    return render_template(
+        'index.html',
+        app_version=APP_VERSION,
+        deployment_method=DEPLOYMENT_METHOD,
+        git_commit=GIT_COMMIT,
+        container_started=CONTAINER_STARTED
+    )
+
+@app.route('/health')
+def health():
+    """
+    Health check endpoint showing version and deployment details.
+    """
+    return jsonify({
+        'status': 'healthy',
+        'version': APP_VERSION,
+        'deployment_method': 'automated',
+        'deployed_via': DEPLOYMENT_METHOD,
+        'commit': GIT_COMMIT,
+        'container_started': CONTAINER_STARTED,
+        'timestamp': datetime.now().isoformat()
+    })
 
 @app.route('/select_directory', methods=['POST'])
 def select_directory():
@@ -408,7 +437,7 @@ def save_label():
             'start_time': round(data['start_time'], 3),
             'end_time': round(data['end_time'], 3),
             'duration': round(data['end_time'] - data['start_time'], 3),
-            'labeled_at': __import__('datetime').datetime.now().isoformat()
+            'labeled_at': datetime.now().isoformat()
         }
         
         # Save to CSV file
@@ -574,4 +603,5 @@ def auto_load_data():
 if __name__ == '__main__':
     # Auto-load CSV and audio files on startup
     auto_load_data()
-    app.run(debug=True, host='0.0.0.0', port=3000)
+    print(f"Starting app version {APP_VERSION} (commit {GIT_COMMIT}) deployed via {DEPLOYMENT_METHOD}")
+    app.run(debug=False, host='0.0.0.0', port=3000)

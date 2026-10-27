@@ -15,5 +15,8 @@ COPY . .
 
 EXPOSE 5000
 
+ARG GIT_COMMIT=unknown
+ENV GIT_COMMIT=$GIT_COMMIT
+
 ENV FLASK_APP=app.py
 CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]
